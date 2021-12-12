@@ -3,58 +3,91 @@ import java.net.*;
 
 public class EchoServer
 {
-    public static void main(String[] args) throws IOException
+    Socket socket;
+    ServerSocket serverSocket;
+    BufferedReader bufferedReader;
+    BufferedWriter bufferedWriter;
+
+    public EchoServer(ServerSocket serverSocket)
     {
-        Socket socket = null;
-        InputStreamReader inputStreamReader = null;
-        OutputStreamWriter outputStreamWriter = null;
-        BufferedReader bufferedReader = null;
-        BufferedWriter bufferedWriter = null;
-        ServerSocket serverSocket = null;
+        this.serverSocket = serverSocket;
+    }
 
-        serverSocket = new ServerSocket(3000); //listening to port 3000
+    public void startServer() throws IOException
+    {
         System.out.println("Server started. Waiting for connection...");
-        
-        while (true)
+        while(!serverSocket.isClosed())
         {
-            try 
+            try
             {
-                socket = serverSocket.accept(); //waiting for client to connect
+                socket = serverSocket.accept();
                 System.out.println("Client connected..");
-                inputStreamReader = new InputStreamReader(socket.getInputStream());
-                outputStreamWriter = new OutputStreamWriter(socket.getOutputStream());
 
-                bufferedReader = new BufferedReader(inputStreamReader);
-                bufferedWriter = new BufferedWriter(outputStreamWriter);
+                bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                bufferedWriter = new BufferedWriter( new OutputStreamWriter( socket.getOutputStream()));
 
-                while (true)
+                while(true)
                 {
                     String msgfromclient = bufferedReader.readLine(); //receive msg from client
                     System.out.println("Client: " + msgfromclient);
-                    
-                    bufferedWriter.write("echo " + msgfromclient);
-                    bufferedWriter.newLine();
-                    bufferedWriter.flush();
+                    sendMsg(bufferedWriter,"echo " + msgfromclient);
 
                     if (msgfromclient.equalsIgnoreCase("end"))
                     {
                         break;
                     }
                 }
-
-                socket.close();
-                inputStreamReader.close();
-                outputStreamWriter.close();
-                bufferedReader.close();
-                bufferedWriter.close();
-                serverSocket.close();
-                break;
-
-            } 
+                closeEverything(socket, serverSocket, bufferedReader, bufferedWriter);
+            }
             catch (IOException e) 
             {
                 e.printStackTrace();
+                closeEverything(socket, serverSocket, bufferedReader, bufferedWriter);
             }
+        }
+    }
+
+    public void sendMsg(BufferedWriter bufferedWriter, String msg)
+    {
+        try
+        {
+            bufferedWriter.write(msg);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+        }
+        catch (IOException e) 
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public void closeEverything(Socket socket, ServerSocket serverSocket, BufferedReader bufferedReader, BufferedWriter bufferedWriter)
+    {
+        try
+        {
+            bufferedReader.close();
+            bufferedWriter.close();
+            socket.close();
+            serverSocket.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args)
+    {
+        int portno = 3000;
+        try
+        {
+            ServerSocket serverSocket = new ServerSocket(portno);
+            EchoServer server = new EchoServer(serverSocket);
+            server.startServer();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
         }
     }
 }
