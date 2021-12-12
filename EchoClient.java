@@ -4,63 +4,78 @@ import java.util.Scanner;
 
 public class EchoClient 
 {
-    public static void main(String[] args) 
+    private Socket socket;
+    private BufferedReader bufferedReader;
+    private BufferedWriter bufferedWriter;
+
+    public EchoClient(Socket socket)
     {
-        
-        Socket socket = null;
-        InputStreamReader inputStreamReader = null;
-        OutputStreamWriter outputStreamWriter = null;
-        BufferedReader bufferedReader = null;
-        BufferedWriter bufferedWriter = null;
-        
+        try
+        {
+            this.socket = socket;
+            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        } 
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public void writeMsg(BufferedWriter bufferedWriter, String msg)
+    {
         try 
         {
-            socket = new Socket("127.0.0.1",3000); //Connect to server 
-            
-            inputStreamReader = new InputStreamReader(socket.getInputStream()); //read from server
-            outputStreamWriter = new OutputStreamWriter(socket.getOutputStream()); //send stuff to server
+            bufferedWriter.write(msg);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+        } 
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
 
-            bufferedReader = new BufferedReader(inputStreamReader); // handle the data more efficient
-            bufferedWriter = new BufferedWriter(outputStreamWriter);
-            
+    public void closeEverything(Socket socket)
+    {
+        try
+        {
+            if (this.bufferedReader!=null) this.bufferedReader.close();
+            if (this.bufferedWriter!=null) this.bufferedWriter.close();
+            if (socket!=null) socket.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    public static void main(String[] args)
+    {
+        try 
+        {
+            Socket socket = new Socket("127.0.0.1",3000); //Connect to server 
+            System.out.println("Server connected..");
+            EchoClient echoClient = new EchoClient(socket);
             Scanner scanner = new Scanner(System.in);
-            
             while (true)
             {
                 String msg = scanner.nextLine();
+                echoClient.writeMsg(echoClient.bufferedWriter, msg);
 
-                bufferedWriter.write(msg);
-                bufferedWriter.newLine();
-                bufferedWriter.flush();
-
-                System.out.println("Server: " + bufferedReader.readLine());
+                System.out.println("Server: " + echoClient.bufferedReader.readLine());
 
                 if (msg.equalsIgnoreCase("end"))
                 {
                     scanner.close();
                     break;
                 }
-
             }
+            echoClient.closeEverything(socket);
         }
-        catch (IOException e)
+        catch (IOException e) 
         {
             e.printStackTrace();
-        }
-        finally
-        {
-            try
-            {
-                if (socket!=null) socket.close();
-                if (inputStreamReader != null) inputStreamReader.close();
-                if (outputStreamWriter != null) outputStreamWriter.close();
-                if (bufferedReader != null) bufferedReader.close();
-                if (bufferedWriter != null) bufferedWriter.close();
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
         }
     }
 }
